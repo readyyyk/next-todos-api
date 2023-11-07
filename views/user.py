@@ -1,11 +1,12 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from services.database import get_session
-from views.schemas.user import UserSchema, UserSchemaCreate
+from views.schemas.user import UserSchema, UserSchemaCreate, UserSchemaUpdate
 from models.user import User as UserModel
 
-router = APIRouter(prefix='/users', tags=['user'])
+
+router = APIRouter(prefix='/users', tags=['User'])
 
 
 @router.get('/{id}', response_model=UserSchema)
@@ -17,7 +18,7 @@ async def get_user(id: int, session: AsyncSession = Depends(get_session)):
 
 
 @router.post('/create', response_model=UserSchema)
-async def get_user(user_data: UserSchemaCreate, session: AsyncSession = Depends(get_session)):
+async def create_user(user_data: UserSchemaCreate, session: AsyncSession = Depends(get_session)):
     user = None
     try:
         new_user_data = user_data.model_dump(exclude_none=True)
@@ -27,6 +28,31 @@ async def get_user(user_data: UserSchemaCreate, session: AsyncSession = Depends(
         raise HTTPException(status_code=400, detail=str(e))
     finally:
         if 'id' not in user.__dict__:
-            raise HTTPException(status_code=400, detail="User with this name already exists!")
+            raise HTTPException(status_code=400, detail="Error creating user!")
+    return user
 
-        return user
+
+@router.put('/{id}/update', response_model=UserSchema)
+async def update_user(id: int, data_to_update: UserSchemaUpdate, session: AsyncSession = Depends(get_session)):
+    try:
+        transaction = data_to_update.model_dump(exclude_none=True)
+        todo = await UserModel.update(session, **transaction, id=id)
+        return todo
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        print(str(e))
+        raise HTTPException(status_code=400, detail="Error updating user!")
+
+
+@router.delete('/{id}/delete')
+async def delete_user(id: int, session: AsyncSession = Depends(get_session)):
+    try:
+        is_deleted = await UserModel.delete(session, id)
+        if is_deleted:
+            return Response(status_code=200, content="Successfully deleted user")
+        else:
+            raise HTTPException(status_code=404, detail="User not found!")
+    except Exception as e:
+        print(str(e))
+        raise HTTPException(status_code=500, detail="Error deleting user")

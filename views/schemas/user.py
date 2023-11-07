@@ -4,15 +4,15 @@ from pydantic import BaseModel, field_serializer
 
 
 class UserSchemaBase(BaseModel):
-    username: str | None = None
-    firstname: str | None = None
-    lastname: str | None = None
-    image: str | None = None
+    id: int
+    username: str
+    firstname: str
+    lastname: str
+    image: str
 
 
 class UserSchema(UserSchemaBase):
-    id: int
-    registered: datetime | None = None
+    registered: datetime
 
     @field_serializer('registered')
     def serialize_dt(self, dt: datetime, _info):
@@ -23,4 +23,14 @@ class UserSchema(UserSchemaBase):
 
 
 class UserSchemaCreate(UserSchemaBase):
-    password: str | None = None
+    id: None = None
+    password: str
+    image: str | None = None
+
+
+class UserSchemaUpdate(UserSchemaBase):
+    id: None = None
+    username: None = None
+    firstname: str | None = None
+    lastname: str | None = None
+    image: str | None = None

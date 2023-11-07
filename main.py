@@ -7,6 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from config import config
 from services.database import sessionmanager
 from views.user import router as user_router
+from views.todo import router as todo_router
 
 
 sessionmanager.init(config.DB_CONFIG)
@@ -34,10 +35,11 @@ async def get():
     return {'message': 'Hello, World!', 'docs': '/docs'}
 
 
-app.include_router(user_router, tags=["user"])
+app.include_router(user_router, tags=["User"])
+app.include_router(todo_router, tags=["Todo"])
 
 
 if __name__ == "__main__":
     import uvicorn
 
-    uvicorn.run("main:app", host="0.0.0.0", port=int(os.getenv("PORT")) or 8080, log_level=os.getenv("LOG_LEVEL"))
+    uvicorn.run("main:app", host="0.0.0.0", port=int(os.getenv("PORT") or 8080), log_level=os.getenv("LOG_LEVEL"))
