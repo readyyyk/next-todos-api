@@ -1,19 +1,41 @@
+from typing import List
+
 from fastapi import HTTPException, Depends, APIRouter, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from services.database import get_session
-from views.schemas.todo import TodoSchemaCreate, TodoSchema, TodoSchemaUpdate
+from views.schemas.todo import TodoSchemaCreate, TodoSchema, TodoSchemaUpdate, TodoWithOwnerSchema
 from models.todo import Todo as TodoModel
+from models.user import User as UserModel
 
 router = APIRouter(prefix='/todos', tags=['Todo'])
 
 
 @router.get('/{id}', response_model=TodoSchema)
 async def get_todo(id: int, session: AsyncSession = Depends(get_session)):
-    user = await TodoModel.get(session, id)
-    if user is None:
+    todo = await TodoModel.get(session, id)
+    if todo is None:
         raise HTTPException(status_code=404, detail="Todo with this id not found!")
-    return user
+    return todo
+
+
+@router.get('/{id}/with-owner', response_model=TodoWithOwnerSchema)
+async def get_todo_with_owner_data(id: int, session: AsyncSession = Depends(get_session)):
+    todo = await TodoModel.get(session, id)
+    if todo is None:
+        raise HTTPException(status_code=404, detail="Todo with this id not found!")
+    owner = await UserModel.get(session, todo.owner_id)
+    if owner is None:
+        raise HTTPException(status_code=404, detail="Owner for this todo.id not found!")
+    return TodoWithOwnerSchema(**todo.__dict__, owner=owner)
+
+
+@router.get('/by-owner/{owner_id}', response_model=List[TodoSchema])
+async def get_todos_by_owner(owner_id: int, session: AsyncSession = Depends(get_session)):
+    todo_list = await TodoModel.get_by_owner(session, owner_id)
+    if todo_list is None:
+        raise HTTPException(status_code=404, detail="Todos for this owner.id not found!")
+    return todo_list
 
 
 @router.post('/create', response_model=TodoSchema)

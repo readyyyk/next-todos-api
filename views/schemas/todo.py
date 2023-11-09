@@ -1,6 +1,7 @@
 from datetime import datetime
 from pydantic import BaseModel
 from models.todo import TodoState
+from views.schemas.user import UserSchema
 
 
 class TodoSchema(BaseModel):
@@ -23,3 +24,8 @@ class TodoSchemaUpdate(TodoSchema):
     created_at: None = None
     description: str | None = None
     state: TodoState | None = None
+
+
+class TodoWithOwnerSchema(TodoSchema):
+    owner: UserSchema
+
