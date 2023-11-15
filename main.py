@@ -8,6 +8,7 @@ from config import config
 from services.database import sessionmanager
 from views.user import router as user_router
 from views.todo import router as todo_router
+from views.auth import router as auth_router
 
 
 sessionmanager.init(config.DB_CONFIG)
@@ -37,6 +38,7 @@ async def get():
 
 app.include_router(user_router, tags=["User"])
 app.include_router(todo_router, tags=["Todo"])
+app.include_router(auth_router, tags=["Auth"])
 
 
 if __name__ == "__main__":

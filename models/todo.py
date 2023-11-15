@@ -25,7 +25,9 @@ class Todo(CRUD):
     async def get_by_owner(cls, session: AsyncSession, owner_id: int):
         transaction = None
         try:
-            transaction = (await session.execute(select(cls).where(cls.owner_id == owner_id))).scalars()
+            transaction = (await session.execute(select(cls).where(
+                cls.owner_id == owner_id
+            ))).scalars()
         except NoResultFound:
             return transaction
         return transaction

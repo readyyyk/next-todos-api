@@ -31,6 +31,17 @@ class UserSchemaCreate(UserSchemaBase):
 class UserSchemaUpdate(UserSchemaBase):
     id: None = None
     username: None = None
+    password: str | None = None
     firstname: str | None = None
     lastname: str | None = None
     image: str | None = None
+
+
+class UserSchemaSignin(UserSchemaBase):
+    password: str
+    username: str
+    id: None = None
+    firstname: None = None
+    lastname: None = None
+    image: None = None
+
