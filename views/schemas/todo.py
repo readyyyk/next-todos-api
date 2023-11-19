@@ -15,6 +15,7 @@ class TodoSchema(BaseModel):
 class TodoSchemaCreate(TodoSchema):
     id: None = None
     state: None = None
+    owner_id: None = None
     created_at: None = None
 
 

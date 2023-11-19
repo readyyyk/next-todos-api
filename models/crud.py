@@ -1,41 +1,35 @@
 from fastapi import HTTPException
 from sqlalchemy.exc import NoResultFound, IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
-from services.database import Base
+from typing import Any
 
 
-class CRUD(Base):
-    __abstract__ = True
-
+class CRUD:
     @classmethod
-    async def create(cls, session: AsyncSession, **kwargs):
+    async def create(cls: Any, session: AsyncSession, **kwargs):
         transaction = cls(**kwargs)
         session.add(transaction)
         try:
             await session.commit()
             await session.refresh(transaction)
         except IntegrityError as e:
-            print(str(e))
             await session.rollback()
-            return Exception(str(e))
+            raise Exception("IntegrityError on creating " + cls.__name__)
         return transaction
 
     @classmethod
     async def get(cls, session: AsyncSession, id: int):
-        transaction = None
         try:
             transaction = await session.get(cls, id)
-        except NoResultFound:
             return transaction
-        return transaction
+        except NoResultFound:
+            return None
 
-    @classmethod
-    async def delete(cls, session: AsyncSession, id: int) -> bool:
+    async def delete_inst(self, session: AsyncSession) -> bool:
         try:
-            transaction = await cls.get(session, id)
-            if transaction is None:
+            if self is None:
                 return False
-            await session.delete(transaction)
+            await session.delete(self)
             await session.commit()
         except Exception as e:
             await session.rollback()
@@ -43,16 +37,25 @@ class CRUD(Base):
         return True
 
     @classmethod
-    async def update(cls, session: AsyncSession, id: int, **kwargs):
+    async def delete(cls, session: AsyncSession, id: int) -> bool:
+        transaction = await cls.get(session, id)
+        return await transaction.delete_inst(session)
+
+    async def update_inst(self, session: AsyncSession, **kwargs):
         try:
-            transaction = await cls.get(session, id)
-            if transaction is None:
-                raise HTTPException(status_code=404, detail=cls.__name__+" not found!")
+            if self is None:
+                raise HTTPException(status_code=404, detail=self.__name__+" not found!")
             for key in kwargs:
-                setattr(transaction, key, kwargs[key])
+                setattr(self, key, kwargs[key])
             await session.commit()
-            await session.refresh(transaction)
-            return transaction
+            await session.refresh(self)
+            return self
         except Exception as e:
             await session.rollback()
             raise e
+
+    @classmethod
+    async def update(cls, session: AsyncSession, id: int, **kwargs):
+        transaction = await cls.get(session, id)
+        updated = await cls.update_inst(transaction, session, **kwargs)
+        return updated

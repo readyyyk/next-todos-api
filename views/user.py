@@ -1,11 +1,12 @@
-from fastapi import APIRouter, Depends, HTTPException, Response
+from fastapi import APIRouter, Depends, HTTPException, Response, Security
+from fastapi_jwt import JwtAuthorizationCredentials
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from config import jwt_config
 from services.database import get_session
 from views.schemas.user import UserSchema, UserSchemaCreate, UserSchemaUpdate
 from models.user import User as UserModel
-from utils import without_keys
-
+from utils import without_keys, JWTPayloadError
 
 router = APIRouter(prefix='/users', tags=['User'])
 
@@ -16,6 +17,12 @@ async def get_user(id: int, session: AsyncSession = Depends(get_session)):
     if user is None:
         raise HTTPException(status_code=404, detail="User with this id not found!")
     return without_keys(user.__dict__, ["password"])
+
+
+@router.get('/me', response_model=UserSchema)
+async def me(session: AsyncSession = Depends(get_session),
+             credentials: JwtAuthorizationCredentials = Security(jwt_config.access_security)):
+    return await get_user(credentials.subject["id"], session)
 
 
 @router.post('/create', response_model=UserSchema)
@@ -31,11 +38,15 @@ async def create_user(user_data: UserSchemaCreate, session: AsyncSession = Depen
     return user
 
 
-@router.put('/{id}/update', response_model=UserSchema)
-async def update_user(id: int, data_to_update: UserSchemaUpdate, session: AsyncSession = Depends(get_session)):
+@router.put('/update', response_model=UserSchema)
+async def update_user(
+        data_to_update: UserSchemaUpdate,
+        session: AsyncSession = Depends(get_session),
+        credentials: JwtAuthorizationCredentials = Security(jwt_config.access_security),
+):
     try:
         transaction = data_to_update.model_dump(exclude_none=True)
-        todo = await UserModel.update(session, **transaction, id=id)
+        todo = await UserModel.update(session, **transaction, id=credentials.subject["id"])
         return without_keys(todo.__dict__, ["password"])
     except HTTPException as e:
         raise e
@@ -44,14 +55,20 @@ async def update_user(id: int, data_to_update: UserSchemaUpdate, session: AsyncS
         raise HTTPException(status_code=400, detail="Error updating user!")
 
 
-@router.delete('/{id}/delete')
-async def delete_user(id: int, session: AsyncSession = Depends(get_session)):
+@router.delete('/delete')
+async def delete_user(
+        credentials: JwtAuthorizationCredentials = Security(jwt_config.access_security),
+        session: AsyncSession = Depends(get_session)
+):
     try:
-        is_deleted = await UserModel.delete(session, id)
+        is_deleted = await UserModel.delete(session, credentials.subject["id"])
         if is_deleted:
             return Response(status_code=200, content="Successfully deleted user")
         else:
             raise HTTPException(status_code=404, detail="User not found!")
+    except KeyError as e:
+        print(str(e))
+        raise JWTPayloadError(detail=str(e))
     except Exception as e:
         print(str(e))
         raise HTTPException(status_code=500, detail="Error deleting user")

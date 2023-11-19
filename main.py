@@ -2,10 +2,12 @@ import os
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 
 from config import config
 from services.database import sessionmanager
+from utils import JWTPayloadError
 from views.user import router as user_router
 from views.todo import router as todo_router
 from views.auth import router as auth_router
@@ -40,6 +42,13 @@ app.include_router(user_router, tags=["User"])
 app.include_router(todo_router, tags=["Todo"])
 app.include_router(auth_router, tags=["Auth"])
 
+
+@app.exception_handler(JWTPayloadError)
+async def key_error_exception_handler(exc: JWTPayloadError):
+    return JSONResponse(
+        status_code=418,
+        content=exc.detail,
+    )
 
 if __name__ == "__main__":
     import uvicorn

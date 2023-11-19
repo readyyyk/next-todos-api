@@ -1,9 +1,10 @@
 from enum import Enum as NativeEnum
-from sqlalchemy import Column, Integer, String, Date, Enum, ForeignKey, select
+from sqlalchemy import Column, Integer, String, Date, Enum, ForeignKey, select, inspect
 from sqlalchemy.exc import NoResultFound
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from models.crud import CRUD
+from services.database import Base
 
 
 class TodoState(str, NativeEnum):
@@ -13,7 +14,7 @@ class TodoState(str, NativeEnum):
     important = 'important'
 
 
-class Todo(CRUD):
+class Todo(CRUD, Base):
     __tablename__ = 'todos'
     id = Column(Integer, primary_key=True)
     owner_id = Column(Integer, ForeignKey("users.id"), nullable=False)
@@ -31,3 +32,8 @@ class Todo(CRUD):
         except NoResultFound:
             return transaction
         return transaction
+
+    @classmethod
+    async def create_for(cls, owner_id: int, session: AsyncSession, **kwargs):
+        payload = {**kwargs, "owner_id": owner_id}
+        return await super().create(session, **payload)

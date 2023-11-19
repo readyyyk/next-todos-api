@@ -7,13 +7,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 import bcrypt
 
 from models.crud import CRUD
+from services.database import Base
 
 
 def default_image(context):
     return "https://api.dicebear.com/7.x/identicon/svg?seed="+urllib.parse.quote_plus(context.get_current_parameters()["username"])
 
 
-class User(CRUD):
+class User(Base, CRUD):
     __tablename__ = 'users'
     id = Column(Integer, primary_key=True)
     username = Column(String, unique=True, nullable=False)
