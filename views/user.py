@@ -11,14 +11,6 @@ from utils import without_keys, JWTPayloadError
 router = APIRouter(prefix='/users', tags=['User'])
 
 
-@router.get('/{id}', response_model=UserSchema)
-async def get_user(id: int, session: AsyncSession = Depends(get_session)):
-    user = await UserModel.get(session, id)
-    if user is None:
-        raise HTTPException(status_code=404, detail="User with this id not found!")
-    return without_keys(user.__dict__, ["password"])
-
-
 @router.get('/me', response_model=UserSchema)
 async def me(session: AsyncSession = Depends(get_session),
              credentials: JwtAuthorizationCredentials = Security(jwt_config.access_security)):
@@ -72,3 +64,11 @@ async def delete_user(
     except Exception as e:
         print(str(e))
         raise HTTPException(status_code=500, detail="Error deleting user")
+
+
+@router.get('/{id}', response_model=UserSchema)
+async def get_user(id: int, session: AsyncSession = Depends(get_session)):
+    user = await UserModel.get(session, id)
+    if user is None:
+        raise HTTPException(status_code=404, detail="User with this id not found!")
+    return without_keys(user.__dict__, ["password"])
