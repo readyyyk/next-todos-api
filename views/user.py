@@ -4,7 +4,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from config import jwt_config
 from services.database import get_session
-from views.schemas.user import UserSchema, UserSchemaCreate, UserSchemaUpdate
+from views.auth import login
+from views.schemas.user import UserSchema, UserSchemaCreate, UserSchemaUpdate, UserSchemaSignin, UserSchemaCreateResponse
 from models.user import User as UserModel
 from utils import without_keys, JWTPayloadError
 
@@ -17,7 +18,7 @@ async def me(session: AsyncSession = Depends(get_session),
     return await get_user(credentials.subject["id"], session)
 
 
-@router.post('/create', response_model=UserSchema)
+@router.post('/create', response_model=UserSchemaCreateResponse)
 async def create_user(user_data: UserSchemaCreate, session: AsyncSession = Depends(get_session)):
     try:
         new_user_data = user_data.model_dump(exclude_none=True)
@@ -27,7 +28,8 @@ async def create_user(user_data: UserSchemaCreate, session: AsyncSession = Depen
         raise HTTPException(status_code=400, detail=str(e))
     if 'id' not in user.__dict__:
         raise HTTPException(status_code=400, detail="Error creating user!")
-    return user
+    tokens = await login(UserSchemaSignin(username=user_data.username, password=user_data.password), session=session)
+    return UserSchemaCreateResponse(**user.__dict__, tokens=tokens)
 
 
 @router.put('/update', response_model=UserSchema)

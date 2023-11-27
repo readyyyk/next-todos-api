@@ -2,6 +2,8 @@ from datetime import datetime
 
 from pydantic import BaseModel, field_serializer
 
+from views.schemas.auth import TokensSchema
+
 
 class UserSchemaBase(BaseModel):
     id: int
@@ -26,6 +28,10 @@ class UserSchemaCreate(UserSchemaBase):
     id: None = None
     password: str
     image: str | None = None
+
+
+class UserSchemaCreateResponse(UserSchema):
+    tokens: TokensSchema
 
 
 class UserSchemaUpdate(UserSchemaBase):
