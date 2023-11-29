@@ -85,12 +85,12 @@ async def delete_todo(
         raise HTTPException(status_code=404, detail="Todo not found!")
 
 
+# add functionality of encryption todo.id to make any todo accessible only with encrypted id
 @router.get('/{id}/with-owner', response_model=TodoWithOwnerSchema)
 async def get_todo_with_owner_data(
         id: int,
-        credentials: JwtAuthorizationCredentials = Security(jwt_config.access_security),
         session: AsyncSession = Depends(get_session)):
-    todo = await get_todo(id, credentials, session)
+    todo = await get_todo(id, session)
     owner = await UserModel.get(session, todo.owner_id)
     if owner is None:
         raise HTTPException(status_code=404, detail="Owner for this todo.id not found!")
@@ -100,11 +100,10 @@ async def get_todo_with_owner_data(
 @router.get('/{id}', response_model=TodoSchema)
 async def get_todo(
         id: int,
-        credentials: JwtAuthorizationCredentials = Security(jwt_config.access_security),
         session: AsyncSession = Depends(get_session)):
     todo = await TodoModel.get(session, id)
     if todo is None:
         raise HTTPException(status_code=404, detail="Todo with this id not found!")
-    if todo.owner_id != credentials.subject["id"]:
-        raise HTTPException(status_code=401, detail="Requested todo is not yours!")
+    # if todo.owner_id != credentials.subject["id"]:
+    #     raise HTTPException(status_code=401, detail="Requested todo is not yours!")
     return todo
