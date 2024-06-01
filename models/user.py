@@ -44,6 +44,10 @@ class User(Base, CRUD):
             user = (await session.execute(select(cls).where(
                 cls.username == username
             ))).scalars().first()
+
+            if user is None:
+                return None
+
             is_valid = bcrypt.checkpw(password.encode('utf-8'), user.password.encode('utf-8'))
             if is_valid:
                 return user
